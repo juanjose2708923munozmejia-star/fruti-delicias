@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { getPublicEnv } from "./env";
+import { getPublicEnv, type CookieToSet } from "./env";
 
 /** Refresca la sesión y bloquea /admin para quien no haya iniciado sesión. */
 export async function updateSession(request: NextRequest) {
@@ -21,10 +21,10 @@ export async function updateSession(request: NextRequest) {
       getAll() {
         return request.cookies.getAll();
       },
-      setAll(list) {
+      setAll(list: CookieToSet[]) {
         list.forEach(({ name, value }) => request.cookies.set(name, value));
         response = NextResponse.next({ request });
-        list.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+        list.forEach(({ name, value, options }) => response.cookies.set(name, value, options as never));
       },
     },
   });
