@@ -1,5 +1,6 @@
 import { getCatalog } from "@/lib/catalog";
 import { formatCOP } from "@/lib/format";
+import { formatPhone, whatsappUrl } from "@/lib/phone";
 import { CartProvider } from "@/components/CartProvider";
 import { CartDrawer } from "@/components/CartDrawer";
 import { Toast } from "@/components/Toast";
@@ -7,6 +8,7 @@ import { Header } from "@/components/Header";
 import { HeroActions } from "@/components/HeroActions";
 import { MenuSection } from "@/components/MenuSection";
 import { Logo } from "@/components/Logo";
+import { SupportBot } from "@/components/SupportBot";
 
 // El menú y los precios los edita el administrador: siempre se leen actualizados.
 export const dynamic = "force-dynamic";
@@ -23,7 +25,6 @@ export default async function HomePage() {
   const mapsUrl = settings.address
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address)}`
     : null;
-  const whatsappDigits = settings.contact_whatsapp?.replace(/\D/g, "");
 
   return (
     <CartProvider maxItems={settings.max_items_per_order}>
@@ -80,6 +81,18 @@ export default async function HomePage() {
           </div>
         </section>
 
+        <section id="resenas" className="section section-reviews" aria-labelledby="reviews-title">
+          <div className="container">
+            <div className="section-head"><h2 id="reviews-title">Reseñas</h2><p className="lead">Pronto podrás calificar tu bowl con estrellas y dejar tu comentario, de forma anónima.</p></div>
+            <div className="review-grid">
+              <article className="review-card"><p className="review-stars" aria-label="5 de 5 estrellas">★★★★★</p><p>“Una combinación de fruta y chocolate para disfrutar en el descanso.”</p><span className="review-author">Ejemplo de reseña · demostración</span></article>
+              <article className="review-card"><p className="review-stars" aria-label="5 de 5 estrellas">★★★★★</p><p>“Me encanta poder elegir mis toppings y personalizar mi bowl.”</p><span className="review-author">Ejemplo de reseña · demostración</span></article>
+              <article className="review-card"><p className="review-stars" aria-label="4 de 5 estrellas">★★★★☆</p><p>“Una idea fresca para compartir con amigos.”</p><span className="review-author">Ejemplo de reseña · demostración</span></article>
+            </div>
+            <p className="muted small">Todavía no tenemos reseñas de clientes. Los tres mensajes de arriba son ejemplos de diseño, no opiniones reales; los reemplazaremos con las reseñas verdaderas apenas lleguen.</p>
+          </div>
+        </section>
+
         <section id="nosotros" className="section section-about" aria-labelledby="about-title">
           <div className="container about-grid">
             <figure className="about-poster">
@@ -101,9 +114,9 @@ export default async function HomePage() {
                     <a href={mapsUrl} target="_blank" rel="noopener noreferrer">Cómo llegar</a>
                   </li>
                 )}
-                {whatsappDigits && (
+                {settings.contact_whatsapp && (
                   <li>
-                    <a href={`https://wa.me/${whatsappDigits}`} target="_blank" rel="noopener noreferrer">Escribir por WhatsApp</a>
+                    <a href={whatsappUrl(settings.contact_whatsapp)} target="_blank" rel="noopener noreferrer">Escribir por WhatsApp: {formatPhone(settings.contact_whatsapp)}</a>
                   </li>
                 )}
                 {settings.contact_phone && (
@@ -140,12 +153,22 @@ export default async function HomePage() {
       <footer className="site-footer">
         <div className="container footer-inner">
           <Logo name={settings.business_name} logoUrl={settings.logo_url} />
-          <p className="small">Fruta + chocolate = felicidad. Institución Educativa Sagrada Familia, Caloto, Cauca.</p>
+          <div className="footer-contact">
+            <p className="small">Fruta + chocolate = felicidad. Institución Educativa Sagrada Familia, Caloto, Cauca.</p>
+            <p className="small">
+              {settings.contact_whatsapp && (
+                <>WhatsApp: <a href={whatsappUrl(settings.contact_whatsapp)} target="_blank" rel="noopener noreferrer">{formatPhone(settings.contact_whatsapp)}</a></>
+              )}
+              {settings.contact_whatsapp && settings.contact_email && " · "}
+              {settings.contact_email && <a href={`mailto:${settings.contact_email}`}>{settings.contact_email}</a>}
+            </p>
+          </div>
         </div>
       </footer>
 
       <CartDrawer />
       <Toast />
+      <SupportBot />
     </CartProvider>
   );
 }

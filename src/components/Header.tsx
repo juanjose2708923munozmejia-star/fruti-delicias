@@ -10,9 +10,9 @@ export function Header({ name, logoUrl }: { name: string; logoUrl: string | null
           <Logo name={name} logoUrl={logoUrl} />
         </Link>
         <nav className="main-nav" aria-label="Principal">
-          <a href="#menu">Menú</a>
-          <a href="#toppings">Toppings</a>
-          <a href="#nosotros">Nosotros</a>
+          <a href="/#menu">Menú</a>
+          <a href="/#toppings">Toppings</a>
+          <a href="/#nosotros">Nosotros</a>
         </nav>
         <div className="header-actions">
           <CartButton />

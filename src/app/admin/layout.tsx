@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { getPublicEnv } from "@/lib/supabase/env";
+import Link from "next/link";
+import { requireAdmin } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Panel administrativo", robots: { index: false, follow: false } };
@@ -10,22 +9,20 @@ export const metadata = { title: "Panel administrativo", robots: { index: false,
  * en el servidor que la persona tiene sesión Y está en la tabla de administradores.
  */
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  if (!getPublicEnv()) redirect("/acceso?error=config");
-
-  const sb = await createClient();
-  const {
-    data: { user },
-  } = await sb.auth.getUser();
-  if (!user) redirect("/acceso");
-
-  const { data: admin } = await sb.from("admins").select("id, full_name").eq("id", user.id).maybeSingle();
-  if (!admin) redirect("/acceso?error=sin-permiso");
-
+  const { user } = await requireAdmin();
   return (
     <div className="admin-shell">
       <header className="admin-bar">
-        <strong>Panel administrativo</strong>
+        <div className="admin-bar-left">
+          <strong>Panel administrativo</strong>
+          <nav className="admin-nav" aria-label="Panel">
+            <Link href="/admin">Resumen</Link>
+            <Link href="/admin/pedidos">Pedidos</Link>
+            <Link href="/" target="_blank">Ver la página</Link>
+          </nav>
+        </div>
         <div className="admin-bar-right">
+          <span className="role-badge">Administrador</span>
           <span className="small">{user.email}</span>
           <form action="/auth/signout" method="post">
             <button type="submit" className="btn btn-ghost-light btn-sm">Cerrar sesión</button>

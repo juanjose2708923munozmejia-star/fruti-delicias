@@ -18,6 +18,8 @@ function CustomizerBody({ product, onClose }: { product: Product; onClose: () =>
   const { add, remainingCapacity, maxItems } = useCart();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [quantity, setQuantity] = useState(1);
+  const [spinResult, setSpinResult] = useState<string | null>(null);
+  const [spinning, setSpinning] = useState(false);
 
   const chosen = useMemo(() => product.toppings.filter((t) => selected.has(t.id)), [product.toppings, selected]);
   const unit = product.price + chosen.reduce((sum, t) => sum + t.price, 0);
@@ -31,6 +33,19 @@ function CustomizerBody({ product, onClose }: { product: Product; onClose: () =>
       else next.add(id);
       return next;
     });
+  }
+
+  function spinForTopping() {
+    if (spinning || product.toppings.length === 0) return;
+    setSpinning(true);
+    window.setTimeout(() => {
+      const available = product.toppings.filter((t) => !selected.has(t.id));
+      const pool = available.length ? available : product.toppings;
+      const prize = pool[Math.floor(Math.random() * pool.length)];
+      setSelected((prev) => new Set(prev).add(prize.id));
+      setSpinResult(`Te tocó ${prize.name}${prize.price > 0 ? ` (+${formatCOP(prize.price)})` : ""}. Ya quedó marcado: puedes quitarlo si no te gusta.`);
+      setSpinning(false);
+    }, 950);
   }
 
   function submit() {
@@ -65,6 +80,11 @@ function CustomizerBody({ product, onClose }: { product: Product; onClose: () =>
       </div>
 
       {product.toppings.length > 0 ? (
+        <>
+        <div className="topping-roulette">
+          <div className={`roulette-wheel${spinning ? " is-spinning" : ""}`} aria-hidden="true">🎁</div>
+          <div className="roulette-copy"><strong>¿No sabes qué elegir?</strong><p className="muted small">Gira la ruleta y te sugerimos un topping al azar. Tiene su precio normal y puedes quitarlo.</p><button type="button" className="btn btn-ghost btn-sm" onClick={spinForTopping} disabled={spinning}>{spinning ? "Girando…" : "Girar la ruleta"}</button>{spinResult && <p className="roulette-result" role="status">{spinResult}</p>}</div>
+        </div>
         <fieldset className="toppings-fieldset">
           <legend>Elige tus toppings</legend>
           {product.toppings.map((t) => (
@@ -75,6 +95,7 @@ function CustomizerBody({ product, onClose }: { product: Product; onClose: () =>
             </label>
           ))}
         </fieldset>
+        </>
       ) : (
         <p className="muted">Este producto no tiene toppings adicionales.</p>
       )}
