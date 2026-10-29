@@ -16,6 +16,7 @@ export function MenuSection({ products, failed, ordersEnabled }: { products: Pro
   const [filter, setFilter] = useState<Filter>("todos");
   const [selected, setSelected] = useState<Product | null>(null);
   const visible = products.filter((p) => filter === "todos" || p.kind === filter);
+  const showFilters = new Set(products.map((p) => p.kind)).size > 1;
 
   return (
     <section id="menu" className="section section-menu" aria-labelledby="menu-title">
@@ -25,7 +26,7 @@ export function MenuSection({ products, failed, ordersEnabled }: { products: Pro
           <p className="muted lead">Elige tu favorito, añade los toppings que quieras y agrégalo a tu pedido.</p>
         </div>
 
-        {products.length > 0 && (
+        {showFilters && (
           <div className="filters" role="group" aria-label="Filtrar productos">
             {FILTERS.map((f) => (
               <button key={f.id} type="button" className="chip-btn" aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>

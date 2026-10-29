@@ -36,7 +36,7 @@ export default async function HomePage() {
             <div className="hero-copy">
               <h1 id="hero-title">{settings.tagline ?? "El antojo que combina fruta, chocolate y felicidad."}</h1>
               <p className="lead">
-                Bowls y pinchos de fruta fresca con chocolate y toppings. Arma el tuyo, resérvalo y recógelo en el colegio.
+                Bowls de fruta fresca con chocolate y toppings. Arma el tuyo, resérvalo y recógelo en el colegio.
               </p>
               <HeroActions />
               <ul className="hero-facts">

@@ -336,7 +336,7 @@ export function CheckoutClient({ businessName, logoUrl }: { businessName: string
     return (
       <section className="checkout-empty">
         <h1>Tu pedido está vacío</h1>
-        <p className="muted">Elige tu bowl o pincho favorito y vuelve aquí para finalizar.</p>
+        <p className="muted">Elige tu bowl favorito y vuelve aquí para finalizar.</p>
         <Link href="/#menu" className="btn btn-primary">Ver el menú</Link>
       </section>
     );

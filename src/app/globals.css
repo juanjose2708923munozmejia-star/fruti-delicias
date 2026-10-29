@@ -461,3 +461,19 @@ a.stat:hover { background: var(--crema-2); }
 .inline-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .inline-label { font-weight: 800; color: var(--cacao); }
 .inline-form select, .time-input { min-height: 44px; padding: 0 10px; border: 2px solid var(--cacao); border-radius: 10px; background: #fff; font: 500 1rem var(--f-body); color: var(--ink); }
+
+/* ===== Panel: acciones del pedido ===== */
+.order-head-right { display: grid; gap: 10px; justify-items: end; }
+.order-tools { display: flex; gap: 8px; }
+.icon-danger { color: var(--vino-d); border-color: var(--vino-d); }
+.icon-danger:hover { background: #ffc9c4; }
+.btn-danger { background: var(--vino); color: #fff; border-color: var(--cacao); box-shadow: 3px 3px 0 var(--cacao); }
+.btn-danger:hover:not(:disabled) { background: var(--vino-d); }
+.order-panel { display: grid; gap: 12px; padding: 16px; background: #fff3c4; border: 2px solid var(--cacao); border-radius: 14px; }
+.order-panel p { margin: 0; }
+.order-panel-danger { background: #ffe1de; border-color: var(--vino-d); }
+.two-cols { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.order-note { min-height: 1.4em; margin: 0; font-weight: 700; }
+.order-note.ok { color: #1f6b2a; }
+.order-note.error { color: var(--vino-d); }
+.order-card[aria-busy="true"] .order-actions { opacity: 0.85; }

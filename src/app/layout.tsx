@@ -6,9 +6,9 @@ const display = Anton({ weight: "400", subsets: ["latin"], variable: "--font-dis
 const body = Figtree({ subsets: ["latin"], variable: "--font-body", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Fruti Delicias | Bowls y pinchos de fruta con chocolate en Caloto, Cauca",
+  title: "Fruti Delicias | Bowls de fruta con chocolate en Caloto, Cauca",
   description:
-    "Pide bowls y pinchos de fruta fresca con chocolate y toppings. Emprendimiento de la Institución Educativa Sagrada Familia, Caloto, Cauca.",
+    "Pide bowls de fruta fresca con chocolate y toppings. Emprendimiento de la Institución Educativa Sagrada Familia, Caloto, Cauca.",
   metadataBase: process.env.NEXT_PUBLIC_SITE_URL ? new URL(process.env.NEXT_PUBLIC_SITE_URL) : undefined,
   openGraph: {
     title: "Fruti Delicias: fruta + chocolate = felicidad",
