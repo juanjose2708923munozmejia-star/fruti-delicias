@@ -45,7 +45,7 @@ export function MenuSection({ products, failed, ordersEnabled }: { products: Pro
         ) : (
           <ul className="product-grid">
             {visible.map((p) => (
-              <li key={p.id} className={`product-card kind-${p.kind}`}>
+              <li key={p.id} className={`product-card kind-${p.kind}${ordersEnabled ? "" : " is-soldout"}`}>
                 <div className="product-art">
                   {p.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -56,7 +56,7 @@ export function MenuSection({ products, failed, ordersEnabled }: { products: Pro
                       <span className="art-note">Foto próximamente</span>
                     </span>
                   )}
-                  <span className="kind-tag">{p.kind === "bowl" ? "Bowl" : "Pincho"}</span>
+                  <span className="kind-tag">{ordersEnabled ? (p.kind === "bowl" ? "Vaso" : "Pincho") : "Agotado"}</span>
                 </div>
                 <div className="product-info">
                   <h3>{p.name}</h3>
@@ -71,7 +71,7 @@ export function MenuSection({ products, failed, ordersEnabled }: { products: Pro
                   <div className="product-foot">
                     <span className="price">{formatCOP(p.price)}</span>
                     <button type="button" className="btn btn-primary btn-sm" onClick={() => setSelected(p)} disabled={!ordersEnabled}>
-                      Agregar al pedido
+                      {ordersEnabled ? "Agregar al pedido" : "Agotado"}
                     </button>
                   </div>
                 </div>
@@ -80,7 +80,7 @@ export function MenuSection({ products, failed, ordersEnabled }: { products: Pro
           </ul>
         )}
         {!ordersEnabled && products.length > 0 && (
-          <p className="notice">Por ahora no estamos recibiendo pedidos. Puedes ver el menú y volver pronto.</p>
+          <p className="notice">Todos los productos están agotados. ¡Gracias por acompañarnos!</p>
         )}
       </div>
       <Customizer product={selected} onClose={() => setSelected(null)} />

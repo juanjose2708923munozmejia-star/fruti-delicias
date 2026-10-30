@@ -401,8 +401,8 @@ export function CheckoutClient({ businessName, logoUrl }: { businessName: string
   if (!config.ordersEnabled) {
     return (
       <section className="checkout-empty">
-        <h1>Por ahora no recibimos pedidos</h1>
-        <p className="muted">Vuelve pronto. Tu pedido sigue guardado en este dispositivo.</p>
+        <h1>¡Muchas gracias por todo!</h1>
+        <p className="muted">El emprendimiento cierra por ahora y ya no estamos recibiendo pedidos. Nos veremos en un futuro próximo: esto no es un adiós, sino un hasta la próxima.</p>
         <Link href="/" className="btn btn-primary">Volver al inicio</Link>
       </section>
     );

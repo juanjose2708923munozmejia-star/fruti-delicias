@@ -484,3 +484,12 @@ a.stat:hover { background: var(--crema-2); }
 .delivery-admin { display: grid; gap: 8px; justify-items: start; padding: 14px; background: #d9efff; border: 2px solid var(--cacao); border-radius: 14px; }
 .delivery-admin p { margin: 0; font-weight: 700; }
 .badge-delivery { background: #d9efff; }
+
+/* ===== Cierre del emprendimiento ===== */
+.closing-banner { background: var(--amarillo); border-bottom: 3px solid var(--cacao); padding: 44px 0 40px; text-align: center; color: var(--cacao); }
+.closing-banner .container { display: grid; gap: 10px; justify-items: center; }
+.closing-banner p { margin: 0; max-width: 46ch; font-size: 1.15rem; font-weight: 700; }
+.closing-banner .closing-title { font-family: var(--f-display); text-transform: uppercase; font-size: clamp(2.4rem, 8vw, 4.4rem); line-height: 1; font-weight: 400; max-width: none; }
+.closing-banner .closing-sub { font-size: 1.3rem; color: var(--vino-d); }
+.is-soldout .product-art img { filter: grayscale(0.85); opacity: 0.7; }
+.is-soldout .kind-tag { background: var(--vino); color: #fff; }

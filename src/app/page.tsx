@@ -22,6 +22,7 @@ const FRUITS = [
 
 export default async function HomePage() {
   const { products, toppings, settings, failed } = await getCatalog();
+  const closed = !settings.orders_enabled;
   const mapsUrl = settings.address
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address)}`
     : null;
@@ -31,6 +32,15 @@ export default async function HomePage() {
       <Header name={settings.business_name} logoUrl={settings.logo_url} />
 
       <main>
+        {closed && (
+          <section className="closing-banner" role="status" aria-live="polite" aria-labelledby="closing-title">
+            <div className="container">
+              <p className="closing-title" id="closing-title">¡Muchas gracias por todo!</p>
+              <p>Gracias por su cariño brindado. El emprendimiento cierra por ahora, pero nos veremos en un futuro próximo.</p>
+              <p className="closing-sub">Esto no es un adiós, sino un hasta la próxima.</p>
+            </div>
+          </section>
+        )}
         <section className="hero" aria-labelledby="hero-title">
           <div className="container hero-inner">
             <div className="hero-copy">
@@ -38,7 +48,7 @@ export default async function HomePage() {
               <p className="lead">
                 Bowls de fruta fresca con chocolate y toppings. Arma el tuyo, resérvalo y recógelo en el colegio.
               </p>
-              <HeroActions />
+              <HeroActions closed={closed} />
               <ul className="hero-facts">
                 <li>Sin crear cuenta</li>
                 <li>Recoges en el colegio</li>
@@ -73,7 +83,7 @@ export default async function HomePage() {
                 {toppings.map((t) => (
                   <li key={t.id}>
                     <span>{t.name}</span>
-                    <span className="topping-list-price">+{formatCOP(t.price)}</span>
+                    <span className="topping-list-price">{closed ? "Agotado" : `+${formatCOP(t.price)}`}</span>
                   </li>
                 ))}
               </ul>
