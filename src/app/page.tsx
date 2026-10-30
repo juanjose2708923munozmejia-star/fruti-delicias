@@ -165,6 +165,7 @@ export default async function HomePage() {
           <Logo name={settings.business_name} logoUrl={settings.logo_url} />
           <div className="footer-contact">
             <p className="small">Fruta + chocolate = felicidad. Institución Educativa Sagrada Familia, Caloto, Cauca.</p>
+            <p className="small footer-credits">Emprendimiento hecho con mucho amor por Juan José Muñoz Mejía, Laura Alejandra Córdoba, Adán José Castillo, Gabriel Antonio Cabarabalí y Ángela Camila Botina.</p>
             <p className="small">
               {settings.contact_whatsapp && (
                 <>WhatsApp: <a href={whatsappUrl(settings.contact_whatsapp)} target="_blank" rel="noopener noreferrer">{formatPhone(settings.contact_whatsapp)}</a></>
