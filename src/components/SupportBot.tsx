@@ -14,7 +14,12 @@ const INTENTS: Intent[] = [
   {
     keys: ["pagar", "pago", "nequi", "efectivo", "plata", "transferencia", "comprobante", "captura"],
     answer:
-      "Puedes pagar en efectivo cuando recojas tu pedido, o por Nequi: en la pantalla final te mostramos el número, haces el pago y subes la captura del comprobante. El equipo la revisa y confirma tu pago.",
+      "Puedes pagar en efectivo cuando recojas (o recibas) tu pedido, o por Nequi: en la pantalla final te mostramos el número, haces el pago y subes la captura del comprobante. El equipo la revisa y confirma tu pago.",
+  },
+  {
+    keys: ["domicilio", "llevan", "llevar", "casa", "envio", "enviar", "direccion de entrega", "maps"],
+    answer:
+      "Sí, puedes pedir domicilio a tu casa: al finalizar tu pedido eliges “Domicilio a mi casa”, escribes tu dirección y, si quieres, pegas el enlace de Google Maps o usas tu ubicación actual. Pagas en efectivo al recibir o por Nequi.",
   },
   {
     keys: ["recoger", "recojo", "recogida", "horario", "hora", "cuando", "donde", "dirección", "direccion", "ubicacion", "colegio"],

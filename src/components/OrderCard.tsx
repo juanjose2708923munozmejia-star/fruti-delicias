@@ -33,6 +33,10 @@ export type OrderView = {
   paymentStatus: PaymentStatus;
   receiptUrl: string | null;
   token: string;
+  fulfillment: "recoger" | "domicilio";
+  address: string | null;
+  reference: string | null;
+  mapsUrl: string | null;
   items: { id: string; name: string; quantity: number; lineTotal: number; toppings: string[] }[];
 };
 
@@ -63,7 +67,7 @@ export function OrderCard({ order, siteUrl, businessName }: { order: OrderView; 
   const [paidAt, setPaidAt] = useState<string | null>(order.paidAt);
   const [assigned, setAssigned] = useState<string | null>(order.assignedTime);
   const [timeInput, setTimeInput] = useState(order.assignedTime ?? "");
-  const [info, setInfo] = useState({ name: order.customerName, notes: order.notes ?? "", date: order.pickupDate, time: order.pickupTime });
+  const [info, setInfo] = useState({ name: order.customerName, notes: order.notes ?? "", date: order.pickupDate, time: order.pickupTime, address: order.address ?? "" });
   const [form, setForm] = useState(info);
   const [panel, setPanel] = useState<Panel>(null);
   const [reason, setReason] = useState(REASONS[0]);
@@ -78,9 +82,17 @@ export function OrderCard({ order, siteUrl, businessName }: { order: OrderView; 
   const first = info.name.split(" ")[0] || "cliente";
   const trackLink = `${siteUrl}/seguimiento/${order.token}`;
   const hour = assigned ?? null;
+  const delivery = order.fulfillment === "domicilio";
+  const mapsLink = order.mapsUrl
+    ? order.mapsUrl
+    : info.address
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${info.address}, Caloto, Cauca, Colombia`)}`
+      : null;
 
-  const msgConfirm = `Hola ${first}, te escribimos de ${businessName}. ¿Confirmas tu pedido ${num} para el ${formatLongDate(info.date)} a las ${formatTime12(info.time)}? Respóndenos "SÍ" para dejarlo confirmado.`;
-  const msgReady = `Hola ${first}, tu pedido ${num} de ${businessName} ya está listo. Puedes pasar a recogerlo${hour ? ` a las ${formatTime12(hour)}` : ""}. Seguimiento: ${trackLink}`;
+  const msgConfirm = `Hola ${first}, te escribimos de ${businessName}. ¿Confirmas tu pedido ${num} para el ${formatLongDate(info.date)} a las ${formatTime12(info.time)}${delivery ? `, con entrega a domicilio en ${info.address}` : ""}? Respóndenos "SÍ" para dejarlo confirmado.`;
+  const msgReady = delivery
+    ? `Hola ${first}, tu pedido ${num} de ${businessName} ya está listo y sale hacia tu dirección${hour ? ` a las ${formatTime12(hour)}` : ""}. Seguimiento: ${trackLink}`
+    : `Hola ${first}, tu pedido ${num} de ${businessName} ya está listo. Puedes pasar a recogerlo${hour ? ` a las ${formatTime12(hour)}` : ""}. Seguimiento: ${trackLink}`;
   const msgReject = `Hola ${first}, revisamos el comprobante de Nequi de tu pedido ${num} y fue rechazado: ${reason}.${extra.trim() ? ` ${extra.trim()}.` : ""} Si ya pagaste, envíanos por aquí una captura clara del pago; si prefieres, puedes pagar en efectivo al recoger. Seguimiento: ${trackLink}`;
 
   async function run(label: string, fn: () => Promise<ActionResult>, okText: string, rollback?: () => void, onOk?: () => void) {
@@ -160,7 +172,7 @@ export function OrderCard({ order, siteUrl, businessName }: { order: OrderView; 
     setInfo(form);
     return run(
       "editar",
-      () => editOrder(order.id, { name: form.name, notes: form.notes, pickupDate: form.date, pickupTime: form.time }),
+      () => editOrder(order.id, { name: form.name, notes: form.notes, pickupDate: form.date, pickupTime: form.time, ...(delivery ? { address: form.address } : {}) }),
       "Pedido actualizado",
       () => setInfo(prev),
       () => setPanel(null),
@@ -185,7 +197,8 @@ export function OrderCard({ order, siteUrl, businessName }: { order: OrderView; 
         <div className="order-head-right">
           <div className="order-badges">
             <span className={`badge st-${status}`}>{STATUS_LABELS[status]}</span>
-            <span className={`badge pay-${pay}`}>{paymentLabel(order.paymentMethod, pay)}</span>
+            {delivery && <span className="badge badge-delivery">Domicilio</span>}
+            <span className={`badge pay-${pay}`}>{paymentLabel(order.paymentMethod, pay, order.fulfillment)}</span>
           </div>
           <div className="order-tools">
             <button type="button" className="icon-btn" aria-label={`Editar el pedido ${num}`} title="Editar" onClick={() => { setForm(info); setPanel(panel === "edit" ? null : "edit"); }}>
@@ -199,7 +212,7 @@ export function OrderCard({ order, siteUrl, businessName }: { order: OrderView; 
       </header>
 
       <dl className="order-meta">
-        <div><dt>Recogida pedida</dt><dd>{formatShortDate(info.date)}, {formatTime12(info.time)}</dd></div>
+        <div><dt>{delivery ? "Entrega pedida" : "Recogida pedida"}</dt><dd>{formatShortDate(info.date)}, {formatTime12(info.time)}</dd></div>
         <div><dt>Hora asignada</dt><dd>{hour ? formatTime12(hour) : "Sin asignar"}</dd></div>
         <div><dt>Forma de pago</dt><dd>{order.paymentMethod === "nequi" ? "Nequi" : "Efectivo"}</dd></div>
         <div><dt>Hora de pago</dt><dd>{paidAt ? stamp(paidAt) : "-----"}</dd></div>
@@ -216,6 +229,18 @@ export function OrderCard({ order, siteUrl, businessName }: { order: OrderView; 
         ))}
         <li className="order-total"><span>Total</span><strong>{formatCOP(order.total)}</strong></li>
       </ul>
+      {delivery && (
+        <div className="delivery-admin">
+          <strong>Entrega a domicilio</strong>
+          <p>{info.address || "Sin dirección"}</p>
+          {order.reference && <p className="small muted">Referencia: {order.reference}</p>}
+          {mapsLink && (
+            <a className="btn btn-primary btn-sm" href={mapsLink} target="_blank" rel="noopener noreferrer">
+              {order.mapsUrl ? "Abrir ubicación en Google Maps" : "Buscar la dirección en Google Maps"}
+            </a>
+          )}
+        </div>
+      )}
       {info.notes && <p className="order-notes"><strong>Observaciones:</strong> {info.notes}</p>}
 
       {order.paymentMethod === "nequi" && (
@@ -262,6 +287,7 @@ export function OrderCard({ order, siteUrl, businessName }: { order: OrderView; 
             <label className="field"><span>Día de recogida</span><input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></label>
             <label className="field"><span>Hora de recogida</span><input type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} /></label>
           </div>
+          {delivery && <label className="field"><span>Dirección de entrega</span><textarea rows={2} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} maxLength={300} /></label>}
           <label className="field"><span>Observaciones</span><textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} maxLength={500} /></label>
           <div className="inline-form">
             <button type="button" className="btn btn-primary btn-sm" onClick={saveEdit} disabled={isBusy}>{busy === "editar" ? "Guardando…" : "Guardar cambios"}</button>
@@ -298,7 +324,7 @@ export function OrderCard({ order, siteUrl, businessName }: { order: OrderView; 
         </div>
 
         <div className="inline-form">
-          <label className="inline-label" htmlFor={`t-${order.id}`}>Hora de recogida:</label>
+          <label className="inline-label" htmlFor={`t-${order.id}`}>{delivery ? "Hora de entrega:" : "Hora de recogida:"}</label>
           <input id={`t-${order.id}`} type="time" value={timeInput} onChange={(e) => setTimeInput(e.target.value)} className="time-input" />
           <button type="button" className="btn btn-ghost btn-sm" onClick={saveTime} disabled={isBusy}>{busy === "hora" ? "Guardando…" : "Guardar hora"}</button>
         </div>

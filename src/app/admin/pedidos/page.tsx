@@ -23,6 +23,10 @@ type Row = {
   payment_status: PaymentStatus;
   payment_receipt_path: string | null;
   review_token: string;
+  fulfillment: "recoger" | "domicilio";
+  delivery_address: string | null;
+  delivery_reference: string | null;
+  delivery_maps_url: string | null;
   customers: { phone: string } | { phone: string }[] | null;
   order_items: {
     id: string;
@@ -50,7 +54,7 @@ export default async function OrdersPage({
   let query = supabase
     .from("orders")
     .select(
-      "id, order_number, status, pickup_date, pickup_time, assigned_pickup_time, customer_name, customer_email, notes, total, created_at, paid_at, payment_method, payment_status, payment_receipt_path, review_token, customers(phone), order_items(id, product_name, quantity, line_total, order_item_toppings(topping_name))",
+      "id, order_number, status, pickup_date, pickup_time, assigned_pickup_time, customer_name, customer_email, notes, total, created_at, paid_at, payment_method, payment_status, payment_receipt_path, review_token, fulfillment, delivery_address, delivery_reference, delivery_maps_url, customers(phone), order_items(id, product_name, quantity, line_total, order_item_toppings(topping_name))",
     )
     .order("created_at", { ascending: false })
     .limit(60);
@@ -93,6 +97,10 @@ export default async function OrdersPage({
       paymentStatus: o.payment_status,
       receiptUrl: o.payment_receipt_path ? urlByPath.get(o.payment_receipt_path) ?? null : null,
       token: o.review_token,
+      fulfillment: o.fulfillment,
+      address: o.delivery_address,
+      reference: o.delivery_reference,
+      mapsUrl: o.delivery_maps_url,
       items: (o.order_items ?? []).map((i) => ({
         id: i.id,
         name: i.product_name,

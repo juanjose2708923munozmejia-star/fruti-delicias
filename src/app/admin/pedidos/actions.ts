@@ -51,7 +51,7 @@ export async function setPayment(id: string, decision: string): Promise<ActionRe
 /** Edita los datos del pedido (nombre, observaciones, día y hora de recogida). */
 export async function editOrder(
   id: string,
-  data: { name: string; notes: string; pickupDate: string; pickupTime: string },
+  data: { name: string; notes: string; pickupDate: string; pickupTime: string; address?: string },
 ): Promise<ActionResult> {
   const { supabase } = await requireAdmin();
   const parsed = z
@@ -61,13 +61,20 @@ export async function editOrder(
       notes: z.string().trim().max(500),
       pickupDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       pickupTime: z.string().regex(/^\d{2}:\d{2}$/),
+      address: z.string().trim().max(300).optional(),
     })
     .safeParse({ id, ...data });
   if (!parsed.success) return { ok: false, error: "Revisa los datos: el nombre, el día y la hora son obligatorios." };
   const p = parsed.data;
   const { error } = await supabase
     .from("orders")
-    .update({ customer_name: p.name, notes: p.notes || null, pickup_date: p.pickupDate, pickup_time: p.pickupTime })
+    .update({
+      customer_name: p.name,
+      notes: p.notes || null,
+      pickup_date: p.pickupDate,
+      pickup_time: p.pickupTime,
+      ...(p.address !== undefined ? { delivery_address: p.address || null } : {}),
+    })
     .eq("id", p.id);
   return error ? FAIL : { ok: true };
 }

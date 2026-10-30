@@ -42,8 +42,24 @@ const bodySchema = z.object({
   notes: z.string().max(600).optional().default(""),
   paymentMethod: z.enum(["efectivo", "nequi"]),
   idempotencyKey: z.string().min(8).max(100),
+  fulfillment: z.enum(["recoger", "domicilio"]).optional().default("recoger"),
+  address: z.string().max(400).optional().default(""),
+  reference: z.string().max(300).optional().default(""),
+  mapsUrl: z.string().max(600).optional().default(""),
   website: z.string().max(200).optional().default(""), // campo trampa contra robots
 });
+
+/** Solo se aceptan enlaces de Google Maps (https). */
+function isGoogleMapsUrl(raw: string): boolean {
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== "https:") return false;
+    const h = u.hostname.toLowerCase();
+    return h === "maps.app.goo.gl" || h === "goo.gl" || /^(www\.|maps\.)?google\.[a-z.]{2,}$/.test(h);
+  } catch {
+    return false;
+  }
+}
 
 const clean = (s: string) => s.replace(/[\u0000-\u001F\u007F]/g, " ").replace(/\s+/g, " ").trim();
 
@@ -84,6 +100,9 @@ type OrderRow = {
   created_at: string;
   customer_name: string | null;
   review_token: string;
+  fulfillment: "recoger" | "domicilio";
+  delivery_address: string | null;
+  delivery_reference: string | null;
   order_items: {
     product_name: string;
     quantity: number;
@@ -94,7 +113,7 @@ type OrderRow = {
 };
 
 const ORDER_SELECT =
-  "id, order_number, pickup_date, pickup_time, total, subtotal, discount, payment_method, payment_status, created_at, customer_name, review_token, order_items(product_name, quantity, unit_price, line_total, order_item_toppings(topping_name, price))";
+  "id, order_number, pickup_date, pickup_time, total, subtotal, discount, payment_method, payment_status, created_at, customer_name, review_token, fulfillment, delivery_address, delivery_reference, order_items(product_name, quantity, unit_price, line_total, order_item_toppings(topping_name, price))";
 
 function toResponse(o: OrderRow) {
   return {
@@ -109,6 +128,9 @@ function toResponse(o: OrderRow) {
     paymentMethod: o.payment_method,
     paymentStatus: o.payment_status,
     createdAt: o.created_at,
+    fulfillment: o.fulfillment,
+    address: o.delivery_address,
+    reference: o.delivery_reference,
     items: (o.order_items ?? []).map((i) => ({
       name: i.product_name,
       quantity: i.quantity,
@@ -154,6 +176,12 @@ export async function POST(request: Request) {
     const email = data.email.trim();
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) throw new UserError("Revisa tu correo electrónico: no parece válido.");
     const notes = clean(data.notes);
+    const delivery = data.fulfillment === "domicilio";
+    const address = delivery ? clean(data.address) : "";
+    const reference = delivery ? clean(data.reference) : "";
+    const mapsUrl = delivery ? data.mapsUrl.trim() : "";
+    if (delivery && address.length < 8) throw new UserError("Escribe la dirección completa para el domicilio (barrio, calle o carrera y número).");
+    if (mapsUrl && !isGoogleMapsUrl(mapsUrl)) throw new UserError("El enlace de Google Maps no es válido. Copia el enlace con el botón Compartir de Google Maps.");
 
     admin = createAdminClient();
 
@@ -262,6 +290,10 @@ export async function POST(request: Request) {
         total,
         payment_method: data.paymentMethod,
         payment_status: "pendiente",
+        fulfillment: data.fulfillment,
+        delivery_address: address || null,
+        delivery_reference: reference || null,
+        delivery_maps_url: mapsUrl || null,
         idempotency_key: data.idempotencyKey,
       })
       .select("id")

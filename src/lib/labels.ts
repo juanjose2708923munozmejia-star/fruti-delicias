@@ -18,8 +18,8 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   nequi: "Nequi",
 };
 
-export function paymentLabel(method: PaymentMethod, status: PaymentStatus): string {
-  if (method === "efectivo") return status === "verificado" ? "Pagado" : "Cobrar al recoger";
+export function paymentLabel(method: PaymentMethod, status: PaymentStatus, fulfillment: "recoger" | "domicilio" = "recoger"): string {
+  if (method === "efectivo") return status === "verificado" ? "Pagado" : fulfillment === "domicilio" ? "Cobrar al entregar" : "Cobrar al recoger";
   if (status === "comprobante_recibido") return "Comprobante por revisar";
   if (status === "verificado") return "Pago verificado";
   if (status === "rechazado") return "Comprobante rechazado";

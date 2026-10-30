@@ -35,6 +35,9 @@ type Confirmed = {
   paymentMethod: Method;
   paymentStatus: string;
   createdAt: string;
+  fulfillment: "recoger" | "domicilio";
+  address: string | null;
+  reference: string | null;
   items: { name: string; quantity: number; unitPrice: number; lineTotal: number; toppings: string[] }[];
 };
 
@@ -92,6 +95,11 @@ export function CheckoutClient({ businessName, logoUrl }: { businessName: string
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [notes, setNotes] = useState("");
+  const [fulfillment, setFulfillment] = useState<"recoger" | "domicilio">("recoger");
+  const [address, setAddress] = useState("");
+  const [reference, setReference] = useState("");
+  const [mapsUrl, setMapsUrl] = useState("");
+  const [locating, setLocating] = useState(false);
   const [method, setMethod] = useState<Method>("efectivo");
   const [receipt, setReceipt] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -153,7 +161,7 @@ export function CheckoutClient({ businessName, logoUrl }: { businessName: string
   const slots = useMemo(() => days.find((d) => d.date === date)?.slots ?? [], [days, date]);
 
   // Una llave nueva cada vez que cambian los datos; si se reintenta igual, no se duplica el pedido.
-  const signature = JSON.stringify([items.map((i) => [i.key, i.quantity]), name, phone, email, date, time, notes, method, receipt?.name, receipt?.size]);
+  const signature = JSON.stringify([items.map((i) => [i.key, i.quantity]), name, phone, email, date, time, notes, method, receipt?.name, receipt?.size, fulfillment, address, reference, mapsUrl]);
   useEffect(() => {
     keyRef.current = newKey();
   }, [signature]);
@@ -179,6 +187,28 @@ export function CheckoutClient({ businessName, logoUrl }: { businessName: string
     }
   }
 
+  /** Toma la ubicación actual del celular y la convierte en un enlace de Google Maps. */
+  function shareMyLocation() {
+    setError(null);
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      return fail("Tu celular no permite compartir la ubicación desde aquí. Pega el enlace de Google Maps o escribe la dirección.");
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude.toFixed(6);
+        const lng = pos.coords.longitude.toFixed(6);
+        setMapsUrl(`https://www.google.com/maps?q=${lat},${lng}`);
+        setLocating(false);
+      },
+      () => {
+        setLocating(false);
+        fail("No pudimos tomar tu ubicación. Revisa el permiso del navegador o pega el enlace de Google Maps.");
+      },
+      { enableHighAccuracy: true, timeout: 12000 },
+    );
+  }
+
   async function copyNumber() {
     if (!config?.nequiNumber) return;
     try {
@@ -198,7 +228,9 @@ export function CheckoutClient({ businessName, logoUrl }: { businessName: string
     if (name.trim().length < 2) return fail("Escribe tu nombre completo.");
     if (!normalizePhone(phone)) return fail("Escribe un celular colombiano válido de 10 dígitos (empieza por 3).");
     if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) return fail("Revisa tu correo electrónico: no parece válido.");
-    if (!date || !time) return fail("Elige el día y la hora en que vas a recoger tu pedido.");
+    if (fulfillment === "domicilio" && address.trim().length < 8) return fail("Escribe la dirección completa para el domicilio (barrio, calle o carrera y número).");
+    if (mapsUrl.trim() && !/^https:\/\//i.test(mapsUrl.trim())) return fail("El enlace de Google Maps debe empezar por https://");
+    if (!date || !time) return fail(fulfillment === "domicilio" ? "Elige el día y la hora en que quieres recibir tu pedido." : "Elige el día y la hora en que vas a recoger tu pedido.");
     if (method === "nequi" && !receipt) return fail("Sube la captura de tu pago por Nequi para poder verificarlo.");
 
     setBusy(true);
@@ -214,6 +246,10 @@ export function CheckoutClient({ businessName, logoUrl }: { businessName: string
           pickupDate: date,
           pickupTime: time,
           notes,
+          fulfillment,
+          address,
+          reference,
+          mapsUrl,
           paymentMethod: method,
           idempotencyKey: keyRef.current || newKey(),
           website,
@@ -260,18 +296,27 @@ export function CheckoutClient({ businessName, logoUrl }: { businessName: string
           <h1 id="confirm-title">¡Pedido recibido!</h1>
           <p className="confirm-number">{orderNumberLabel(confirmed.number)}</p>
           <dl className="confirm-facts">
-            <div><dt>Día de recogida</dt><dd>{formatLongDate(confirmed.pickupDate)}</dd></div>
-            <div><dt>Hora de recogida</dt><dd>{formatTime12(confirmed.pickupTime)}</dd></div>
+            <div><dt>{confirmed.fulfillment === "domicilio" ? "Día de entrega" : "Día de recogida"}</dt><dd>{formatLongDate(confirmed.pickupDate)}</dd></div>
+            <div><dt>{confirmed.fulfillment === "domicilio" ? "Hora de entrega" : "Hora de recogida"}</dt><dd>{formatTime12(confirmed.pickupTime)}</dd></div>
             <div><dt>Total</dt><dd>{formatCOP(confirmed.total)}</dd></div>
           </dl>
           <div className="confirm-steps">
-            <h2 className="h3">Cómo recoger tu pedido</h2>
+            <h2 className="h3">{confirmed.fulfillment === "domicilio" ? "Cómo recibirás tu pedido" : "Cómo recoger tu pedido"}</h2>
             <ul>
-              <li>Preséntate con tu número de pedido {orderNumberLabel(confirmed.number)}.</li>
-              {config?.address && <li>Lugar: {config.address}.</li>}
-              {config?.pickupInstructions && <li>{config.pickupInstructions}</li>}
+              {confirmed.fulfillment === "domicilio" ? (
+                <>
+                  <li>Lo llevaremos a: {confirmed.address}{confirmed.reference ? ` (${confirmed.reference})` : ""}.</li>
+                  <li>Ten a la mano tu número de pedido {orderNumberLabel(confirmed.number)}.</li>
+                </>
+              ) : (
+                <>
+                  <li>Preséntate con tu número de pedido {orderNumberLabel(confirmed.number)}.</li>
+                  {config?.address && <li>Lugar: {config.address}.</li>}
+                  {config?.pickupInstructions && <li>{config.pickupInstructions}</li>}
+                </>
+              )}
               {confirmed.paymentMethod === "efectivo" ? (
-                <li>Pagas {formatCOP(confirmed.total)} en efectivo al recoger.</li>
+                <li>Pagas {formatCOP(confirmed.total)} en efectivo {confirmed.fulfillment === "domicilio" ? "cuando te entreguemos el pedido" : "al recoger"}.</li>
               ) : (
                 <li>Recibimos tu comprobante de Nequi. Lo revisaremos y te avisaremos si hay algún problema.</li>
               )}
@@ -297,8 +342,9 @@ export function CheckoutClient({ businessName, logoUrl }: { businessName: string
           <dl className="receipt-meta">
             {confirmed.customerName && <div><dt>Cliente</dt><dd>{confirmed.customerName}</dd></div>}
             <div><dt>Hora de realización del pedido</dt><dd>{formatStamp(confirmed.createdAt)}</dd></div>
-            <div><dt>Recogida</dt><dd>{formatShortDate(confirmed.pickupDate)}, {formatTime12(confirmed.pickupTime)}</dd></div>
-            <div><dt>Forma de pago</dt><dd>{confirmed.paymentMethod === "nequi" ? "Nequi" : "Efectivo al recoger"}</dd></div>
+            <div><dt>{confirmed.fulfillment === "domicilio" ? "Entrega a domicilio" : "Recogida"}</dt><dd>{formatShortDate(confirmed.pickupDate)}, {formatTime12(confirmed.pickupTime)}</dd></div>
+            {confirmed.fulfillment === "domicilio" && confirmed.address && <div><dt>Dirección</dt><dd>{confirmed.address}</dd></div>}
+            <div><dt>Forma de pago</dt><dd>{confirmed.paymentMethod === "nequi" ? "Nequi" : confirmed.fulfillment === "domicilio" ? "Efectivo al recibir" : "Efectivo al recoger"}</dd></div>
             <div>
               <dt>Hora de pago</dt>
               <dd>{confirmed.paymentMethod === "nequi" ? "Pendiente de verificación" : "-----"}</dd>
@@ -393,7 +439,42 @@ export function CheckoutClient({ businessName, logoUrl }: { businessName: string
         </fieldset>
 
         <fieldset className="co-section">
-          <legend>¿Cuándo lo recoges?</legend>
+          <legend>¿Cómo lo quieres?</legend>
+          <div className="pay-options" role="radiogroup" aria-label="Forma de entrega">
+            <label className={`pay-option${fulfillment === "recoger" ? " is-on" : ""}`}>
+              <input type="radio" name="ful" checked={fulfillment === "recoger"} onChange={() => setFulfillment("recoger")} />
+              <span><strong>Recoger en el colegio</strong><small>Pasas por tu pedido a la hora que elijas.</small></span>
+            </label>
+            <label className={`pay-option${fulfillment === "domicilio" ? " is-on" : ""}`}>
+              <input type="radio" name="ful" checked={fulfillment === "domicilio"} onChange={() => setFulfillment("domicilio")} />
+              <span><strong>Domicilio a mi casa</strong><small>Te lo llevamos a tu dirección.</small></span>
+            </label>
+          </div>
+
+          {fulfillment === "domicilio" && (
+            <div className="address-box">
+              <label className="field">
+                <span>Dirección de entrega</span>
+                <textarea value={address} onChange={(e) => setAddress(e.target.value)} rows={2} maxLength={300} placeholder="Barrio, calle o carrera y número" autoComplete="street-address" />
+              </label>
+              <label className="field">
+                <span>Referencia <span className="optional">(opcional)</span></span>
+                <input value={reference} onChange={(e) => setReference(e.target.value)} maxLength={200} placeholder="Casa de dos pisos, frente a la tienda…" />
+              </label>
+              <label className="field">
+                <span>Ubicación en Google Maps <span className="optional">(opcional)</span></span>
+                <input value={mapsUrl} onChange={(e) => setMapsUrl(e.target.value)} inputMode="url" placeholder="Pega aquí el enlace de Google Maps" maxLength={500} />
+                <small className="hint">En Google Maps mantén presionado tu casa, pulsa Compartir y copia el enlace. O usa el botón de abajo.</small>
+              </label>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={shareMyLocation} disabled={locating}>
+                {locating ? "Buscando tu ubicación…" : mapsUrl.includes("google.com/maps?q=") ? "Ubicación agregada ✓ (tocar para actualizar)" : "Usar mi ubicación actual"}
+              </button>
+            </div>
+          )}
+        </fieldset>
+
+        <fieldset className="co-section">
+          <legend>{fulfillment === "domicilio" ? "¿Cuándo te lo llevamos?" : "¿Cuándo lo recoges?"}</legend>
           {days.length === 0 ? (
             <p className="notice" role="status">Por ahora no hay horarios disponibles. Intenta más tarde.</p>
           ) : (
@@ -426,7 +507,7 @@ export function CheckoutClient({ businessName, logoUrl }: { businessName: string
             {config.cashEnabled && (
               <label className={`pay-option${method === "efectivo" ? " is-on" : ""}`}>
                 <input type="radio" name="pay" checked={method === "efectivo"} onChange={() => setMethod("efectivo")} />
-                <span><strong>Efectivo al recoger</strong><small>Pagas cuando llegues por tu pedido.</small></span>
+                <span><strong>{fulfillment === "domicilio" ? "Efectivo al recibir" : "Efectivo al recoger"}</strong><small>{fulfillment === "domicilio" ? "Pagas cuando te entreguemos el pedido." : "Pagas cuando llegues por tu pedido."}</small></span>
               </label>
             )}
             {config.nequiEnabled && (

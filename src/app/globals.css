@@ -477,3 +477,10 @@ a.stat:hover { background: var(--crema-2); }
 .order-note.ok { color: #1f6b2a; }
 .order-note.error { color: var(--vino-d); }
 .order-card[aria-busy="true"] .order-actions { opacity: 0.85; }
+
+/* ===== Domicilio ===== */
+.address-box { display: grid; gap: 14px; padding: 16px; background: #fff3c4; border: 2px solid var(--cacao); border-radius: 16px; }
+.address-box .btn { justify-self: start; }
+.delivery-admin { display: grid; gap: 8px; justify-items: start; padding: 14px; background: #d9efff; border: 2px solid var(--cacao); border-radius: 14px; }
+.delivery-admin p { margin: 0; font-weight: 700; }
+.badge-delivery { background: #d9efff; }

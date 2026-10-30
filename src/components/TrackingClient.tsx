@@ -14,6 +14,7 @@ type Tracked = {
   paymentMethod: "efectivo" | "nequi";
   paymentStatus: "pendiente" | "comprobante_recibido" | "verificado" | "rechazado";
   total: number;
+  fulfillment: "recoger" | "domicilio";
 };
 
 const STEPS: { id: Tracked["status"]; label: string }[] = [
@@ -106,12 +107,13 @@ export function TrackingClient({ token, whatsapp }: { token: string; whatsapp: s
   const cancelled = order.status === "cancelado";
   const current = STEPS.findIndex((s) => s.id === order.status);
   const hour = order.assignedTime ?? order.pickupTime;
+  const delivery = order.fulfillment === "domicilio";
   const wa = whatsapp ? `https://wa.me/57${whatsapp.replace(/\D/g, "").replace(/^57/, "")}?text=${encodeURIComponent(`Hola, consulto por mi pedido ${orderNumberLabel(order.number)}.`)}` : null;
 
   return (
     <section className="track" aria-live="polite">
       <p className="eyebrow">Pedido {orderNumberLabel(order.number)}</p>
-      <h1 className={order.status === "listo" ? "track-ready" : undefined}>{HEADLINE[order.status]}</h1>
+      <h1 className={order.status === "listo" ? "track-ready" : undefined}>{order.status === "listo" && delivery ? "¡Tu pedido está listo! Te lo llevamos a tu dirección" : HEADLINE[order.status]}</h1>
 
       {!cancelled && (
         <ol className="track-steps" aria-label="Avance del pedido">
@@ -125,14 +127,14 @@ export function TrackingClient({ token, whatsapp }: { token: string; whatsapp: s
       )}
 
       <dl className="confirm-facts">
-        <div><dt>Día de recogida</dt><dd>{formatLongDate(order.pickupDate)}</dd></div>
-        <div><dt>{order.assignedTime ? "Hora asignada por el equipo" : "Hora de recogida"}</dt><dd>{formatTime12(hour)}</dd></div>
+        <div><dt>{delivery ? "Día de entrega" : "Día de recogida"}</dt><dd>{formatLongDate(order.pickupDate)}</dd></div>
+        <div><dt>{order.assignedTime ? "Hora asignada por el equipo" : delivery ? "Hora de entrega" : "Hora de recogida"}</dt><dd>{formatTime12(hour)}</dd></div>
         <div><dt>Total</dt><dd>{formatCOP(order.total)}</dd></div>
         <div>
           <dt>Pago</dt>
           <dd>
             {order.paymentMethod === "efectivo"
-              ? order.paymentStatus === "verificado" ? "Pagado en efectivo" : "Efectivo al recoger"
+              ? order.paymentStatus === "verificado" ? "Pagado en efectivo" : delivery ? "Efectivo al recibir" : "Efectivo al recoger"
               : order.paymentStatus === "verificado" ? "Nequi verificado"
               : order.paymentStatus === "rechazado" ? "Comprobante rechazado: escríbenos"
               : "Nequi en verificación"}
