@@ -100,6 +100,7 @@ export function CheckoutClient({ businessName, logoUrl }: { businessName: string
   const [reference, setReference] = useState("");
   const [mapsUrl, setMapsUrl] = useState("");
   const [locating, setLocating] = useState(false);
+  const [consent, setConsent] = useState(false);
   const [method, setMethod] = useState<Method>("efectivo");
   const [receipt, setReceipt] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -225,6 +226,7 @@ export function CheckoutClient({ businessName, logoUrl }: { businessName: string
     if (busy) return;
     setError(null);
     if (items.length === 0) return fail("Tu pedido está vacío. Agrega productos desde el menú.");
+    if (!consent) return fail("Para continuar, acepta el tratamiento de tus datos y los términos y condiciones.");
     if (name.trim().length < 2) return fail("Escribe tu nombre completo.");
     if (!normalizePhone(phone)) return fail("Escribe un celular colombiano válido de 10 dígitos (empieza por 3).");
     if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) return fail("Revisa tu correo electrónico: no parece válido.");
@@ -250,6 +252,7 @@ export function CheckoutClient({ businessName, logoUrl }: { businessName: string
           address,
           reference,
           mapsUrl,
+          consent,
           paymentMethod: method,
           idempotencyKey: keyRef.current || newKey(),
           website,
@@ -546,6 +549,15 @@ export function CheckoutClient({ businessName, logoUrl }: { businessName: string
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} maxLength={500} placeholder="Alergias, sin algún ingrediente, etc." />
           </label>
         </fieldset>
+
+        <label className="consent-box">
+          <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+          <span>
+            Autorizo el tratamiento de mis datos personales según la{" "}
+            <a href="/privacidad" target="_blank" rel="noopener noreferrer">Política de datos</a> y acepto los{" "}
+            <a href="/terminos" target="_blank" rel="noopener noreferrer">Términos y condiciones</a>.
+          </span>
+        </label>
 
         {error && <p ref={errorRef} className="form-error" role="alert">{error}</p>}
 

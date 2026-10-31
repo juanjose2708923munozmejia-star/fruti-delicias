@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getAvailability } from "@/lib/availability";
 import { normalizePhone } from "@/lib/phone";
 import { weekdayOf } from "@/lib/colombia";
+import { LEGAL_VERSION } from "@/lib/legal";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -46,6 +47,7 @@ const bodySchema = z.object({
   address: z.string().max(400).optional().default(""),
   reference: z.string().max(300).optional().default(""),
   mapsUrl: z.string().max(600).optional().default(""),
+  consent: z.boolean().optional().default(false),
   website: z.string().max(200).optional().default(""), // campo trampa contra robots
 });
 
@@ -168,6 +170,7 @@ export async function POST(request: Request) {
     if (!parsed.success) throw new UserError("Revisa los datos de tu pedido e inténtalo de nuevo.");
     const data = parsed.data;
     if (data.website) throw new UserError(GENERIC);
+    if (!data.consent) throw new UserError("Para hacer tu pedido debes aceptar el tratamiento de tus datos y los términos y condiciones.");
 
     const name = clean(data.name);
     if (name.length < 2) throw new UserError("Escribe tu nombre completo.");
@@ -291,6 +294,8 @@ export async function POST(request: Request) {
         payment_method: data.paymentMethod,
         payment_status: "pendiente",
         fulfillment: data.fulfillment,
+        consent_at: new Date().toISOString(),
+        consent_version: LEGAL_VERSION,
         delivery_address: address || null,
         delivery_reference: reference || null,
         delivery_maps_url: mapsUrl || null,

@@ -495,3 +495,17 @@ a.stat:hover { background: var(--crema-2); }
 .is-soldout .kind-tag { background: var(--vino); color: #fff; }
 
 .footer-credits { max-width: 60ch; margin-top: 6px !important; font-weight: 700; }
+
+/* ===== Páginas legales y aceptación ===== */
+.legal-top { background: var(--cacao); color: var(--crema); padding: 8px 0; }
+.legal-top-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.legal-page { background: var(--crema); padding: 48px 0 80px; }
+.legal-body { max-width: 780px; }
+.legal-body h1 { font-size: clamp(2.2rem, 7vw, 3.4rem); margin-bottom: 8px; }
+.legal-body h2 { font-size: 1.6rem; margin: 34px 0 10px; }
+.legal-body p, .legal-body li { font-size: 1.02rem; }
+.legal-body ul { padding-left: 22px; display: grid; gap: 6px; margin: 0 0 1em; }
+.legal-body a { font-weight: 700; }
+.consent-box { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border: 2px solid var(--cacao); border-radius: 14px; background: var(--blanco); cursor: pointer; }
+.consent-box input { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--vino); flex: none; }
+.footer-links a { color: var(--amarillo); font-weight: 700; }
