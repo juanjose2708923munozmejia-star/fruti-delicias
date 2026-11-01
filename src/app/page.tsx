@@ -62,7 +62,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <MenuSection products={products} failed={failed} ordersEnabled={settings.orders_enabled} />
+        <MenuSection products={products} failed={failed} ordersEnabled={settings.orders_enabled} rouletteEnabled={settings.topping_roulette_enabled} />
 
         <section id="toppings" className="section section-dark" aria-labelledby="toppings-title">
           <div className="container">
@@ -83,7 +83,7 @@ export default async function HomePage() {
                 {toppings.map((t) => (
                   <li key={t.id}>
                     <span>{t.name}</span>
-                    <span className="topping-list-price">{closed ? "Agotado" : `+${formatCOP(t.price)}`}</span>
+                    <span className="topping-list-price">{closed || (t.stock != null && t.stock <= 0) ? "Agotado" : `+${formatCOP(t.price)}`}</span>
                   </li>
                 ))}
               </ul>

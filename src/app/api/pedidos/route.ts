@@ -48,6 +48,7 @@ const bodySchema = z.object({
   reference: z.string().max(300).optional().default(""),
   mapsUrl: z.string().max(600).optional().default(""),
   consent: z.boolean().optional().default(false),
+  promoCode: z.string().max(30).optional().default(""),
   website: z.string().max(200).optional().default(""), // campo trampa contra robots
 });
 
@@ -88,6 +89,18 @@ type SettingsRow = {
 };
 type ProductRow = { id: string; name: string; price: number; product_toppings: { topping_id: string }[] | null };
 type ToppingRow = { id: string; name: string; price: number };
+type StockItem = { kind: "product" | "topping"; id: string; qty: number };
+type PromoRow = {
+  id: string;
+  code: string;
+  discount_percent: number | null;
+  discount_amount: number | null;
+  max_uses: number | null;
+  used_count: number;
+  one_per_phone: boolean;
+  expires_at: string | null;
+  is_active: boolean;
+};
 
 type OrderRow = {
   id: string;
@@ -153,6 +166,7 @@ export async function POST(request: Request) {
   let admin: SupabaseClient | null = null;
   let createdOrderId: string | null = null;
   let uploadedPath: string | null = null;
+  let reservedItems: StockItem[] | null = null;
   let finished = false;
 
   try {
@@ -245,7 +259,31 @@ export async function POST(request: Request) {
       return { id: randomUUID(), product, toppings, quantity: item.quantity, unitPrice, lineTotal: unitPrice * item.quantity };
     });
     const subtotal = lines.reduce((s, l) => s + l.lineTotal, 0);
-    const discount = 0; // Los descuentos por código se validan aquí en el servidor (siguiente etapa).
+
+    // ---------- 4b. Código de descuento (se valida aquí, nunca en el navegador) ----------
+    let discount = 0;
+    let promo: PromoRow | null = null;
+    const promoCode = data.promoCode.trim().toUpperCase();
+    if (promoCode) {
+      const pr = await admin
+        .from("promo_codes")
+        .select("id, code, discount_percent, discount_amount, max_uses, used_count, one_per_phone, expires_at, is_active")
+        .eq("code", promoCode)
+        .maybeSingle();
+      const row = (pr.data as PromoRow | null) ?? null;
+      const usable =
+        row !== null &&
+        row.is_active &&
+        (!row.expires_at || new Date(row.expires_at).getTime() > Date.now()) &&
+        (row.max_uses === null || row.used_count < row.max_uses);
+      if (pr.error || !row || !usable) throw new UserError("Ese código de descuento no es válido o ya no está disponible.");
+      if (row.one_per_phone) {
+        const used = await admin.from("promo_redemptions").select("id", { count: "exact", head: true }).eq("code_id", row.id).eq("phone", phone);
+        if ((used.count ?? 0) > 0) throw new UserError("Ya usaste este código de descuento.");
+      }
+      discount = row.discount_percent ? Math.floor((subtotal * row.discount_percent) / 100) : Math.min(row.discount_amount ?? 0, subtotal);
+      promo = row;
+    }
     const total = subtotal - discount;
 
     // ---------- 5. Fecha y hora de recogida válidas y con cupo ----------
@@ -278,6 +316,27 @@ export async function POST(request: Request) {
     const recent = await admin.from("orders").select("id", { count: "exact", head: true }).eq("customer_id", customerId).gte("created_at", since);
     if ((recent.count ?? 0) >= 3) throw new UserError("Has hecho varios pedidos seguidos. Espera un momento e intenta de nuevo.", 429);
 
+    // ---------- 7b. Inventario: se descuenta ahora; si algo falla, se devuelve ----------
+    const stockMap = new Map<string, StockItem>();
+    const addStock = (kind: "product" | "topping", id: string, qty: number) => {
+      const key = `${kind}:${id}`;
+      const cur = stockMap.get(key);
+      if (cur) cur.qty += qty;
+      else stockMap.set(key, { kind, id, qty });
+    };
+    for (const l of lines) {
+      addStock("product", l.product.id, l.quantity);
+      for (const t of l.toppings) addStock("topping", t.id, l.quantity);
+    }
+    const stockItems = Array.from(stockMap.values());
+    const reserve = await admin.rpc("reserve_stock", { p_items: stockItems });
+    if (reserve.error) {
+      const m = /SIN_STOCK:(.+)/.exec(reserve.error.message);
+      if (m) throw new UserError(`Lo sentimos, "${m[1].trim()}" se agotó. Quítalo de tu pedido o baja la cantidad e inténtalo de nuevo.`, 409);
+      throw new Error("No se pudo reservar el inventario");
+    }
+    reservedItems = stockItems;
+
     // ---------- 8. Guardar el pedido ----------
     const orderIns = await admin
       .from("orders")
@@ -293,6 +352,7 @@ export async function POST(request: Request) {
         total,
         payment_method: data.paymentMethod,
         payment_status: "pendiente",
+        promo_code: promo?.code ?? null,
         fulfillment: data.fulfillment,
         consent_at: new Date().toISOString(),
         consent_version: LEGAL_VERSION,
@@ -327,6 +387,16 @@ export async function POST(request: Request) {
       if (topIns.error) throw new Error("No se pudieron guardar los toppings");
     }
 
+    // ---------- 8b. Registrar el uso del código de descuento (una sola vez) ----------
+    if (promo) {
+      const red = await admin.rpc("redeem_promo", { p_order: createdOrderId, p_code_id: promo.id, p_phone: phone, p_discount: discount });
+      if (red.error) {
+        if (red.error.message.includes("CODIGO_YA_USADO")) throw new UserError("Ya usaste este código de descuento.");
+        if (red.error.message.includes("CODIGO_NO_DISPONIBLE")) throw new UserError("Ese código de descuento ya no está disponible.");
+        throw new Error("No se pudo registrar el código");
+      }
+    }
+
     // ---------- 9. Revisar el cupo otra vez (por si dos personas pidieron a la vez) ----------
     const slotRes = await admin
       .from("time_slots")
@@ -359,11 +429,16 @@ export async function POST(request: Request) {
     finished = true;
     return NextResponse.json({ ok: true, order: toResponse(order) }, { status: 201 });
   } catch (e) {
-    // Si algo falló a la mitad, no se deja un pedido a medias.
-    if (!finished && admin && createdOrderId) {
+    // Si algo falló a la mitad, no se deja un pedido a medias ni se pierde inventario.
+    if (!finished && admin) {
       try {
         if (uploadedPath) await admin.storage.from("receipts").remove([uploadedPath]);
-        await admin.from("orders").delete().eq("id", createdOrderId);
+        if (createdOrderId) {
+          // Primero se quita el detalle para que el borrado no devuelva inventario dos veces.
+          await admin.from("order_items").delete().eq("order_id", createdOrderId);
+          await admin.from("orders").delete().eq("id", createdOrderId);
+        }
+        if (reservedItems) await admin.rpc("release_stock", { p_items: reservedItems });
       } catch (cleanupError) {
         console.error("pedido: no se pudo limpiar", cleanupError);
       }

@@ -12,7 +12,7 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: "pincho", label: "Pinchos" },
 ];
 
-export function MenuSection({ products, failed, ordersEnabled }: { products: Product[]; failed: boolean; ordersEnabled: boolean }) {
+export function MenuSection({ products, failed, ordersEnabled, rouletteEnabled = true }: { products: Product[]; failed: boolean; ordersEnabled: boolean; rouletteEnabled?: boolean }) {
   const [filter, setFilter] = useState<Filter>("todos");
   const [selected, setSelected] = useState<Product | null>(null);
   const visible = products.filter((p) => filter === "todos" || p.kind === filter);
@@ -45,7 +45,7 @@ export function MenuSection({ products, failed, ordersEnabled }: { products: Pro
         ) : (
           <ul className="product-grid">
             {visible.map((p) => (
-              <li key={p.id} className={`product-card kind-${p.kind}${ordersEnabled ? "" : " is-soldout"}`}>
+              <li key={p.id} className={`product-card kind-${p.kind}${ordersEnabled && !(p.stock != null && p.stock <= 0) ? "" : " is-soldout"}`}>
                 <div className="product-art">
                   {p.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -56,7 +56,7 @@ export function MenuSection({ products, failed, ordersEnabled }: { products: Pro
                       <span className="art-note">Foto próximamente</span>
                     </span>
                   )}
-                  <span className="kind-tag">{ordersEnabled ? (p.kind === "bowl" ? "Vaso" : "Pincho") : "Agotado"}</span>
+                  <span className="kind-tag">{ordersEnabled && !(p.stock != null && p.stock <= 0) ? (p.kind === "bowl" ? "Vaso" : "Pincho") : "Agotado"}</span>
                 </div>
                 <div className="product-info">
                   <h3>{p.name}</h3>
@@ -70,8 +70,8 @@ export function MenuSection({ products, failed, ordersEnabled }: { products: Pro
                   )}
                   <div className="product-foot">
                     <span className="price">{formatCOP(p.price)}</span>
-                    <button type="button" className="btn btn-primary btn-sm" onClick={() => setSelected(p)} disabled={!ordersEnabled}>
-                      {ordersEnabled ? "Agregar al pedido" : "Agotado"}
+                    <button type="button" className="btn btn-primary btn-sm" onClick={() => setSelected(p)} disabled={!ordersEnabled || (p.stock != null && p.stock <= 0)}>
+                      {ordersEnabled && !(p.stock != null && p.stock <= 0) ? "Agregar al pedido" : "Agotado"}
                     </button>
                   </div>
                 </div>
@@ -83,7 +83,7 @@ export function MenuSection({ products, failed, ordersEnabled }: { products: Pro
           <p className="notice">Todos los productos están agotados. ¡Gracias por acompañarnos!</p>
         )}
       </div>
-      <Customizer product={selected} onClose={() => setSelected(null)} />
+      <Customizer product={selected} onClose={() => setSelected(null)} rouletteEnabled={rouletteEnabled} />
     </section>
   );
 }

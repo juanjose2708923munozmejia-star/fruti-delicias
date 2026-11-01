@@ -3,6 +3,8 @@ import { DEFAULT_SETTINGS } from "@/lib/config";
 import { SEED_PRODUCTS, SEED_TOPPINGS } from "@/lib/seed-catalog";
 import type { Product, SiteSettings, Topping } from "@/lib/types";
 
+type RawTopping = { id: string; name: string; price: number; stock: number | null; in_roulette: boolean | null; sort_order: number };
+
 type RawProduct = {
   id: string;
   slug: string;
@@ -12,7 +14,8 @@ type RawProduct = {
   price: number;
   image_url: string | null;
   ingredients: string[] | null;
-  product_toppings: { toppings: (Topping & { sort_order: number }) | null }[] | null;
+  stock: number | null;
+  product_toppings: { toppings: RawTopping | null }[] | null;
 };
 
 export type Catalog = {
@@ -36,11 +39,11 @@ export async function getCatalog(): Promise<Catalog> {
       sb
         .from("products")
         .select(
-          "id, slug, name, description, kind, price, image_url, ingredients, product_toppings(toppings(id, name, price, sort_order))",
+          "id, slug, name, description, kind, price, image_url, ingredients, stock, product_toppings(toppings(id, name, price, stock, in_roulette, sort_order))",
         )
         .eq("is_active", true)
         .order("sort_order"),
-      sb.from("toppings").select("id, name, price").eq("is_active", true).order("sort_order"),
+      sb.from("toppings").select("id, name, price, stock, in_roulette").eq("is_active", true).order("sort_order"),
       sb.from("settings").select("*").eq("id", 1).maybeSingle(),
     ]);
 
@@ -55,11 +58,12 @@ export async function getCatalog(): Promise<Catalog> {
       price: p.price,
       image_url: p.image_url,
       ingredients: p.ingredients ?? [],
+      stock: p.stock ?? null,
       toppings: (p.product_toppings ?? [])
         .map((pt) => pt.toppings)
-        .filter((t): t is Topping & { sort_order: number } => t !== null)
+        .filter((t): t is RawTopping => t !== null)
         .sort((a, b) => a.sort_order - b.sort_order)
-        .map(({ id, name, price }) => ({ id, name, price })),
+        .map((t): Topping => ({ id: t.id, name: t.name, price: t.price, stock: t.stock ?? null, inRoulette: t.in_roulette ?? true })),
     }));
 
     const raw = (settingsRes.data ?? {}) as Partial<SiteSettings>;
@@ -69,7 +73,14 @@ export async function getCatalog(): Promise<Catalog> {
       if (value !== undefined) (settings as Record<string, unknown>)[key] = value;
     }
     settings.logo_url = settings.logo_url ?? DEFAULT_SETTINGS.logo_url;
-    return { products, toppings: (toppingsRes.data ?? []) as Topping[], settings, failed: false };
+    const toppings: Topping[] = ((toppingsRes.data ?? []) as { id: string; name: string; price: number; stock: number | null; in_roulette: boolean | null }[]).map((t) => ({
+      id: t.id,
+      name: t.name,
+      price: t.price,
+      stock: t.stock ?? null,
+      inRoulette: t.in_roulette ?? true,
+    }));
+    return { products, toppings, settings, failed: false };
   } catch {
     return empty;
   }

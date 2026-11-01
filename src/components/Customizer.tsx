@@ -6,15 +6,15 @@ import { formatCOP } from "@/lib/format";
 import { useCart } from "./CartProvider";
 import { Modal } from "./Modal";
 
-export function Customizer({ product, onClose }: { product: Product | null; onClose: () => void }) {
+export function Customizer({ product, onClose, rouletteEnabled = true }: { product: Product | null; onClose: () => void; rouletteEnabled?: boolean }) {
   return (
     <Modal open={product !== null} onClose={onClose} label={product ? `Personalizar ${product.name}` : "Personalizar"} variant="sheet">
-      {product && <CustomizerBody key={product.id} product={product} onClose={onClose} />}
+      {product && <CustomizerBody key={product.id} product={product} onClose={onClose} rouletteEnabled={rouletteEnabled} />}
     </Modal>
   );
 }
 
-function CustomizerBody({ product, onClose }: { product: Product; onClose: () => void }) {
+function CustomizerBody({ product, onClose, rouletteEnabled }: { product: Product; onClose: () => void; rouletteEnabled: boolean }) {
   const { add, remainingCapacity, maxItems } = useCart();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [quantity, setQuantity] = useState(1);
@@ -23,8 +23,12 @@ function CustomizerBody({ product, onClose }: { product: Product; onClose: () =>
 
   const chosen = useMemo(() => product.toppings.filter((t) => selected.has(t.id)), [product.toppings, selected]);
   const unit = product.price + chosen.reduce((sum, t) => sum + t.price, 0);
-  const limit = Math.max(0, Math.min(50, remainingCapacity));
+  const soldOutTopping = (t: { stock?: number | null }) => t.stock != null && t.stock <= 0;
+  const productSoldOut = product.stock != null && product.stock <= 0;
+  const stockCap = Math.min(product.stock ?? 999, ...chosen.map((t) => t.stock ?? 999));
+  const limit = Math.max(0, Math.min(50, remainingCapacity, stockCap));
   const full = remainingCapacity <= 0;
+  const rouletteToppings = product.toppings.filter((t) => t.inRoulette !== false && !soldOutTopping(t));
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -36,11 +40,11 @@ function CustomizerBody({ product, onClose }: { product: Product; onClose: () =>
   }
 
   function spinForTopping() {
-    if (spinning || product.toppings.length === 0) return;
+    if (spinning || rouletteToppings.length === 0) return;
     setSpinning(true);
     window.setTimeout(() => {
-      const available = product.toppings.filter((t) => !selected.has(t.id));
-      const pool = available.length ? available : product.toppings;
+      const available = rouletteToppings.filter((t) => !selected.has(t.id));
+      const pool = available.length ? available : rouletteToppings;
       const prize = pool[Math.floor(Math.random() * pool.length)];
       setSelected((prev) => new Set(prev).add(prize.id));
       setSpinResult(`Te tocó ${prize.name}${prize.price > 0 ? ` (+${formatCOP(prize.price)})` : ""}. Ya quedó marcado: puedes quitarlo si no te gusta.`);
@@ -49,7 +53,7 @@ function CustomizerBody({ product, onClose }: { product: Product; onClose: () =>
   }
 
   function submit() {
-    if (full) return;
+    if (full || productSoldOut || limit <= 0) return;
     add({
       productId: product.id,
       name: product.name,
@@ -81,17 +85,19 @@ function CustomizerBody({ product, onClose }: { product: Product; onClose: () =>
 
       {product.toppings.length > 0 ? (
         <>
+        {rouletteEnabled && rouletteToppings.length > 0 && (
         <div className="topping-roulette">
           <div className={`roulette-wheel${spinning ? " is-spinning" : ""}`} aria-hidden="true">🎁</div>
           <div className="roulette-copy"><strong>¿No sabes qué elegir?</strong><p className="muted small">Gira la ruleta y te sugerimos un topping al azar. Tiene su precio normal y puedes quitarlo.</p><button type="button" className="btn btn-ghost btn-sm" onClick={spinForTopping} disabled={spinning}>{spinning ? "Girando…" : "Girar la ruleta"}</button>{spinResult && <p className="roulette-result" role="status">{spinResult}</p>}</div>
         </div>
+        )}
         <fieldset className="toppings-fieldset">
           <legend>Elige tus toppings</legend>
           {product.toppings.map((t) => (
-            <label key={t.id} className={`topping-option${selected.has(t.id) ? " is-on" : ""}`}>
-              <input type="checkbox" checked={selected.has(t.id)} onChange={() => toggle(t.id)} />
+            <label key={t.id} className={`topping-option${selected.has(t.id) ? " is-on" : ""}${soldOutTopping(t) ? " is-off" : ""}`}>
+              <input type="checkbox" checked={selected.has(t.id)} onChange={() => toggle(t.id)} disabled={soldOutTopping(t)} />
               <span className="topping-name">{t.name}</span>
-              <span className="topping-price">+{formatCOP(t.price)}</span>
+              <span className="topping-price">{soldOutTopping(t) ? "Agotado" : `+${formatCOP(t.price)}`}</span>
             </label>
           ))}
         </fieldset>
@@ -114,13 +120,14 @@ function CustomizerBody({ product, onClose }: { product: Product; onClose: () =>
       </div>
 
       {full && <p className="notice" role="alert">Tu pedido ya tiene el máximo de {maxItems} productos.</p>}
+      {!full && stockCap < 50 && stockCap > 0 && <p className="notice" role="status">Quedan solo {stockCap} disponibles con esta combinación.</p>}
 
       <div className="customizer-foot">
         <div>
           <span className="muted">Total</span>
           <strong className="foot-total">{formatCOP(unit * Math.min(quantity, Math.max(1, limit)))}</strong>
         </div>
-        <button type="button" className="btn btn-primary" onClick={submit} disabled={full}>
+        <button type="button" className="btn btn-primary" onClick={submit} disabled={full || productSoldOut || limit <= 0}>
           Agregar al pedido
         </button>
       </div>

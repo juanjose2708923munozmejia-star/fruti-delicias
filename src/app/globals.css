@@ -509,3 +509,50 @@ a.stat:hover { background: var(--crema-2); }
 .consent-box { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border: 2px solid var(--cacao); border-radius: 14px; background: var(--blanco); cursor: pointer; }
 .consent-box input { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--vino); flex: none; }
 .footer-links a { color: var(--amarillo); font-weight: 700; }
+
+.topping-option.is-off { opacity: 0.55; cursor: not-allowed; }
+
+/* ===== Código de descuento ===== */
+.promo-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.promo-field { flex: 1; min-width: 160px; }
+.promo-field input { text-transform: uppercase; letter-spacing: 0.08em; font-weight: 800; }
+.promo-applied { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; background: #d8f3d6; border: 2px solid var(--cacao); border-radius: 12px; font-weight: 700; }
+
+/* ===== Panel: productos, inventario, descuentos y cuenta ===== */
+.admin-user { display: inline-flex; align-items: center; gap: 8px; color: var(--crema); text-decoration: none; }
+.avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--amarillo); background: var(--crema); }
+.avatar-fallback { display: inline-grid; place-items: center; background: var(--amarillo); color: var(--cacao); font-weight: 800; }
+.avatar-lg { width: 96px; height: 96px; font-size: 2.4rem; border-color: var(--cacao); }
+.switch { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 14px 4px 4px; border: 2px solid var(--cacao); border-radius: 999px; background: #e4ddd3; cursor: pointer; font: 800 0.9rem var(--f-body); color: var(--cacao); }
+.switch .switch-knob { width: 32px; height: 32px; border-radius: 50%; background: var(--blanco); border: 2px solid var(--cacao); transition: transform 0.15s ease; }
+.switch.on { background: #bfe8c0; }
+.switch.on .switch-knob { transform: translateX(0); background: var(--amarillo); }
+.switch:disabled { opacity: 0.6; cursor: wait; }
+.quick-settings ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 14px; }
+.quick-settings li { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 2px dashed #d9c3a5; }
+.quick-settings p { margin: 2px 0 0; }
+.catalog-admin { display: grid; gap: 36px; }
+.catalog-admin h2 { margin-bottom: 14px; }
+.edit-grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); align-items: start; }
+.edit-card { display: grid; gap: 12px; padding: 18px; background: var(--blanco); border: 2px solid var(--cacao); border-radius: 18px; box-shadow: 4px 4px 0 var(--cacao); }
+.edit-card.is-new { background: #fff3c4; }
+.edit-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.edit-head h3 { font-size: 1.4rem; }
+.edit-photo { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.edit-thumb { width: 84px; height: 84px; object-fit: cover; border-radius: 12px; border: 2px solid var(--cacao); background: var(--crema-2); }
+.edit-thumb-empty { display: grid; place-items: center; font-size: 0.8rem; font-weight: 700; color: var(--muted); }
+.file-btn { cursor: pointer; }
+.check-line { display: flex; align-items: center; gap: 10px; font-weight: 700; min-height: 44px; cursor: pointer; }
+.check-line input { width: 22px; height: 22px; accent-color: var(--vino); }
+.promo-admin { display: grid; gap: 28px; }
+@media (min-width: 900px) { .promo-admin { grid-template-columns: 380px 1fr; align-items: start; } }
+.promo-list { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 14px; }
+.promo-item { display: grid; gap: 8px; padding: 16px; background: var(--blanco); border: 2px solid var(--cacao); border-radius: 16px; }
+.promo-item p { margin: 0; }
+.promo-main { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.promo-code { font-family: var(--f-display); font-size: 1.8rem; letter-spacing: 0.06em; color: var(--vino); }
+.account { display: grid; gap: 20px; max-width: 720px; }
+.account-card { display: grid; gap: 14px; padding: 22px; background: var(--blanco); border: 2px solid var(--cacao); border-radius: 18px; box-shadow: 4px 4px 0 var(--cacao); }
+.account-card p { margin: 0; }
+.account-photo { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.account-email { display: grid; gap: 4px; justify-items: start; }

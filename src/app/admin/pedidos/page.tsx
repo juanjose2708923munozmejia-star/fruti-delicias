@@ -3,6 +3,7 @@ import { bogotaNow } from "@/lib/colombia";
 import { ORDER_STATUSES, PAYMENT_STATUSES, STATUS_LABELS, type OrderStatus, type PaymentMethod, type PaymentStatus } from "@/lib/labels";
 import { OrderCard, type OrderView } from "@/components/OrderCard";
 import { AutoRefresh } from "@/components/AutoRefresh";
+import { NewOrderAlert } from "@/components/NewOrderAlert";
 
 export const dynamic = "force-dynamic";
 
@@ -114,6 +115,7 @@ export default async function OrdersPage({
   return (
     <>
       <AutoRefresh seconds={45} />
+      <NewOrderAlert latestId={rows[0]?.id ?? null} latestNumber={rows[0]?.order_number ?? null} />
       <h1>Pedidos</h1>
       <p className="small muted">Los pedidos nuevos aparecen solos cada 45 segundos.</p>
 

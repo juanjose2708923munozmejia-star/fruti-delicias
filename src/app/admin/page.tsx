@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/admin-auth";
 import { bogotaNow } from "@/lib/colombia";
 import { formatCOP } from "@/lib/format";
+import { QuickSettings } from "@/components/QuickSettings";
 
 export const dynamic = "force-dynamic";
 
@@ -9,13 +10,15 @@ export default async function AdminHome() {
   const { supabase } = await requireAdmin();
   const today = bogotaNow().date;
 
-  const [nuevos, porRevisar, hoy, ventas] = await Promise.all([
+  const [flagsRes, nuevos, porRevisar, hoy, ventas] = await Promise.all([
+    supabase.from("settings").select("orders_enabled, topping_roulette_enabled, cash_enabled, nequi_enabled").eq("id", 1).maybeSingle(),
     supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "nuevo"),
     supabase.from("orders").select("id", { count: "exact", head: true }).eq("payment_status", "comprobante_recibido"),
     supabase.from("orders").select("id", { count: "exact", head: true }).eq("pickup_date", today).neq("status", "cancelado"),
     supabase.from("orders").select("total").eq("pickup_date", today).neq("status", "cancelado"),
   ]);
 
+  const flags = flagsRes.data as { orders_enabled: boolean; topping_roulette_enabled: boolean; cash_enabled: boolean; nequi_enabled: boolean } | null;
   const failed = Boolean(nuevos.error || porRevisar.error || hoy.error || ventas.error);
   const sold = ((ventas.data ?? []) as { total: number }[]).reduce((n, o) => n + o.total, 0);
 
@@ -34,11 +37,12 @@ export default async function AdminHome() {
           <div className="stat"><span>Valor de los pedidos de hoy</span><strong>{formatCOP(sold)}</strong></div>
         </div>
       )}
+      {flags && <QuickSettings initial={flags} />}
       <div className="info-card">
         <h2 className="h3">Cómo usar el panel</h2>
         <p>
-          En <Link href="/admin/pedidos">Pedidos</Link> puedes revisar los comprobantes de Nequi, verificar pagos, asignar la hora de recogida,
-          cambiar el estado y avisar al cliente por WhatsApp cuando su pedido esté listo.
+          En <Link href="/admin/pedidos">Pedidos</Link> revisas comprobantes, verificas pagos y avisas por WhatsApp. En <Link href="/admin/productos">Productos e inventario</Link> agregas
+          productos y toppings, cambias precios y controlas cuánto queda de cada uno. En <Link href="/admin/codigos">Descuentos</Link> creas códigos como JL50.
         </p>
       </div>
     </>

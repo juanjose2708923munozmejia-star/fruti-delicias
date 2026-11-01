@@ -20,5 +20,6 @@ export const DEFAULT_SETTINGS = {
   facebook_url: null,
   tiktok_url: null,
   orders_enabled: true,
+  topping_roulette_enabled: true,
   max_items_per_order: 20,
 } as const;

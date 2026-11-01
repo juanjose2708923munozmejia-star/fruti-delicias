@@ -1,4 +1,4 @@
-export type Topping = { id: string; name: string; price: number };
+export type Topping = { id: string; name: string; price: number; stock?: number | null; inRoulette?: boolean };
 
 export type Product = {
   id: string;
@@ -9,6 +9,7 @@ export type Product = {
   price: number;
   image_url: string | null;
   ingredients: string[];
+  stock?: number | null;
   toppings: Topping[];
 };
 
@@ -27,6 +28,7 @@ export type SiteSettings = {
   facebook_url: string | null;
   tiktok_url: string | null;
   orders_enabled: boolean;
+  topping_roulette_enabled: boolean;
   max_items_per_order: number;
 };
 

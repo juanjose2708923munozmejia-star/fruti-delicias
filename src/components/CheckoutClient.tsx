@@ -83,7 +83,7 @@ function formatStamp(iso: string): string {
 }
 
 export function CheckoutClient({ businessName, logoUrl }: { businessName: string; logoUrl: string | null }) {
-  const { items, hydrated, subtotal, discount, total, clear, openCart } = useCart();
+  const { items, hydrated, subtotal, clear, openCart } = useCart();
 
   const [config, setConfig] = useState<Config | null>(null);
   const [days, setDays] = useState<Day[]>([]);
@@ -101,6 +101,13 @@ export function CheckoutClient({ businessName, logoUrl }: { businessName: string
   const [mapsUrl, setMapsUrl] = useState("");
   const [locating, setLocating] = useState(false);
   const [consent, setConsent] = useState(false);
+  const [promoInput, setPromoInput] = useState("");
+  const [promo, setPromo] = useState<{ code: string; percent: number | null; amount: number | null } | null>(null);
+  const [promoMsg, setPromoMsg] = useState<string | null>(null);
+  const [promoBusy, setPromoBusy] = useState(false);
+  // Vista previa: el valor definitivo del descuento lo calcula siempre el servidor.
+  const discount = promo ? (promo.percent ? Math.floor((subtotal * promo.percent) / 100) : Math.min(promo.amount ?? 0, subtotal)) : 0;
+  const total = Math.max(0, subtotal - discount);
   const [method, setMethod] = useState<Method>("efectivo");
   const [receipt, setReceipt] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -162,7 +169,7 @@ export function CheckoutClient({ businessName, logoUrl }: { businessName: string
   const slots = useMemo(() => days.find((d) => d.date === date)?.slots ?? [], [days, date]);
 
   // Una llave nueva cada vez que cambian los datos; si se reintenta igual, no se duplica el pedido.
-  const signature = JSON.stringify([items.map((i) => [i.key, i.quantity]), name, phone, email, date, time, notes, method, receipt?.name, receipt?.size, fulfillment, address, reference, mapsUrl]);
+  const signature = JSON.stringify([items.map((i) => [i.key, i.quantity]), name, phone, email, date, time, notes, method, receipt?.name, receipt?.size, fulfillment, address, reference, mapsUrl, promo?.code]);
   useEffect(() => {
     keyRef.current = newKey();
   }, [signature]);
@@ -185,6 +192,28 @@ export function CheckoutClient({ businessName, logoUrl }: { businessName: string
     } catch (e) {
       setReceipt(null);
       fail(e instanceof Error ? e.message : GENERIC);
+    }
+  }
+
+  async function applyPromo() {
+    const code = promoInput.trim().toUpperCase();
+    if (!code) return setPromoMsg("Escribe tu código de descuento.");
+    setPromoBusy(true);
+    setPromoMsg(null);
+    try {
+      const res = await fetch("/api/cupon", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, phone }) });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.ok) {
+        setPromo(null);
+        setPromoMsg(json?.error ?? GENERIC);
+      } else {
+        setPromo({ code: json.code as string, percent: (json.percent as number | null) ?? null, amount: (json.amount as number | null) ?? null });
+        setPromoInput("");
+      }
+    } catch {
+      setPromoMsg(GENERIC);
+    } finally {
+      setPromoBusy(false);
     }
   }
 
@@ -253,6 +282,7 @@ export function CheckoutClient({ businessName, logoUrl }: { businessName: string
           reference,
           mapsUrl,
           consent,
+          promoCode: promo?.code ?? "",
           paymentMethod: method,
           idempotencyKey: keyRef.current || newKey(),
           website,
@@ -502,6 +532,25 @@ export function CheckoutClient({ businessName, logoUrl }: { businessName: string
               <small className="hint">El equipo puede ajustar la hora exacta y te la mostrará en el seguimiento del pedido.</small>
             </>
           )}
+        </fieldset>
+
+        <fieldset className="co-section">
+          <legend>Código de descuento <span className="optional">(opcional)</span></legend>
+          {promo ? (
+            <div className="promo-applied" role="status">
+              <span>Código <strong>{promo.code}</strong> aplicado: {promo.percent ? `${promo.percent} % de descuento` : `${formatCOP(promo.amount ?? 0)} de descuento`}</span>
+              <button type="button" className="link-btn" onClick={() => { setPromo(null); setPromoMsg(null); }}>Quitar</button>
+            </div>
+          ) : (
+            <div className="promo-row">
+              <label className="field promo-field">
+                <span className="sr-only">Código de descuento</span>
+                <input value={promoInput} onChange={(e) => setPromoInput(e.target.value.toUpperCase())} placeholder="Ej. JL50" maxLength={20} autoCapitalize="characters" />
+              </label>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={applyPromo} disabled={promoBusy}>{promoBusy ? "Revisando…" : "Aplicar"}</button>
+            </div>
+          )}
+          {promoMsg && <p className="form-error" role="alert">{promoMsg}</p>}
         </fieldset>
 
         <fieldset className="co-section">
